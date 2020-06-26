@@ -9,19 +9,34 @@ use crossterm::{cursor::*, terminal::*, ExecutableCommand, Result};
 const TIMER_IN_SECONDS: i64 = 5;
 
 struct Timer {
+    duration_remaining: Duration,
     end_time: DateTime<Utc>,
 }
 
 impl Timer {
     fn new() -> Timer {
+        let full_duration = Duration::seconds(TIMER_IN_SECONDS);
         Timer {
-            end_time: Utc::now() + Duration::seconds(TIMER_IN_SECONDS),
+            end_time: Utc::now() + full_duration,
+            duration_remaining: full_duration
         }
     }
 
-    fn seconds_remaining(&self) -> i64 {
+    fn update(&mut self) {
         let now = Utc::now();
-        (self.end_time - now).num_seconds()
+        self.duration_remaining = self.end_time - now;
+    }
+
+    fn seconds_remaining(&self) -> i64 {
+        self.duration_remaining.num_seconds()
+    }
+
+    fn done(&self) -> bool {
+        self.seconds_remaining() <= 0
+    }
+
+    fn as_clock(&self) -> String {
+        String::from(format!("{:02}:{:02}", self.duration_remaining.num_minutes(), self.duration_remaining.num_seconds()))
     }
 }
 
@@ -34,24 +49,24 @@ fn clear_line(stdout: &mut Stdout) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let timer = Timer::new();
-    println!("Starting a timer that lasts {} seconds", TIMER_IN_SECONDS);
+    let mut timer = Timer::new();
+    println!("Starting a timer that lasts {} seconds ({})", TIMER_IN_SECONDS, timer.as_clock());
 
     let mut stdout = stdout();
 
     let mut previous_seconds_remaining = TIMER_IN_SECONDS;
     stdout.execute(SavePosition)?;
     loop {
-        let seconds_remaining = timer.seconds_remaining();
+        timer.update();
 
-        if seconds_remaining < previous_seconds_remaining {
+        if timer.seconds_remaining() < previous_seconds_remaining {
             clear_line(&mut stdout)?;
-            print!("{} seconds remaining...", seconds_remaining);
+            print!("{}", timer.as_clock());
             stdout.flush()?;
         }
-        previous_seconds_remaining = seconds_remaining;
+        previous_seconds_remaining = timer.seconds_remaining();
 
-        if seconds_remaining <= 0 {
+        if timer.done() {
             clear_line(&mut stdout)?;
             break;
         }
