@@ -36,7 +36,9 @@ impl Timer {
     }
 
     fn as_clock(&self) -> String {
-        String::from(format!("{:02}:{:02}", self.duration_remaining.num_minutes(), self.duration_remaining.num_seconds()))
+        let num_minutes = self.duration_remaining.num_minutes();
+        let remainder_seconds =  self.seconds_remaining() - num_minutes * 60;
+        String::from(format!("{:02}:{:02}", num_minutes, remainder_seconds))
     }
 }
 
@@ -67,7 +69,7 @@ fn main() -> Result<()> {
         previous_seconds_remaining = timer.seconds_remaining();
 
         if timer.done() {
-            clear_line(&mut stdout)?;
+            println!();
             break;
         }
     }
